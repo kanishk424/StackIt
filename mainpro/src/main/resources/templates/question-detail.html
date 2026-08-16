@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StackIt Question Detail</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            inter: ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+
+  <script>
+    (function () {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        alert("Please login first.");
+        window.location.href = "auth.html";
+      }
+    })();
+  </script>
+</head>
+<body class="font-inter bg-gray-100 text-slate-800">
+<div class="flex min-h-screen">
+  <div id="overlay" class="fixed inset-0 z-30 hidden bg-black/40 backdrop-blur-sm md:hidden"></div>
+
+  <aside id="sidebar"
+         class="fixed left-0 top-0 z-40 h-screen w-72 -translate-x-full transform border-r border-white/10 bg-slate-950 text-white transition-transform duration-300 md:translate-x-0 md:sticky md:top-0">
+    <div class="flex h-full flex-col">
+      <div class="flex items-center gap-3 px-6 py-5">
+        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500 shadow-lg shadow-indigo-500/30">
+          <span class="text-lg font-bold">S</span>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight">StackIt</h1>
+          <p class="text-xs text-slate-400">Q&A Forum Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="mt-4 flex-1 px-4">
+        <a href="dashboard.html"
+           class="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15">
+          <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Back to Feed
+        </a>
+      </nav>
+
+      <div class="px-6 pb-6">
+        <button id="logoutBtn"
+                class="mt-4 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600">
+          Logout
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex min-h-screen flex-1 flex-col">
+    <header class="sticky top-0 z-20 border-b border-gray-200 bg-white/80 backdrop-blur-md">
+      <div class="flex items-center justify-between gap-4 px-4 py-4 md:px-6">
+        <div class="flex items-center gap-3">
+          <button id="menuBtn"
+                  class="rounded-2xl border border-gray-200 bg-white p-2 shadow-sm transition hover:bg-gray-50 md:hidden">
+            <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Question Detail</h2>
+            <p class="text-sm text-slate-500">Read and contribute answers</p>
+          </div>
+        </div>
+        <a href="dashboard.html"
+           class="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+          Home
+        </a>
+      </div>
+    </header>
+
+    <main class="flex-1 bg-gray-100 px-4 py-6 md:px-6">
+      <div class="mx-auto max-w-5xl space-y-6">
+
+        <!-- Question -->
+        <section class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div id="questionLoading" class="text-sm text-slate-500">Loading question...</div>
+          <div id="questionBlock" class="hidden">
+            <h1 id="questionTitle" class="text-2xl font-extrabold text-slate-900"></h1>
+            <p id="questionContent" class="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-700"></p>
+
+            <div id="questionTags" class="mt-4 flex flex-wrap gap-2"></div>
+
+            <div class="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
+              <p class="text-sm text-slate-600">
+                Asked by <span id="questionUser" class="font-semibold text-slate-900">Unknown</span>
+              </p>
+              <div class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                Reputation: <span id="questionReputation">0</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Answers -->
+        <section class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-slate-900">Answers</h3>
+            <span id="answersCount" class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">0</span>
+          </div>
+
+          <div id="answersContainer" class="space-y-4">
+            <div class="rounded-2xl bg-gray-50 p-4 text-sm text-slate-500">No answers yet.</div>
+          </div>
+        </section>
+
+        <!-- Post Answer -->
+        <section class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h3 class="text-xl font-bold text-slate-900">Post Your Answer</h3>
+          <form id="postAnswerForm" class="mt-4 space-y-4">
+                        <textarea id="answerContent" rows="6" required
+                                  class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-indigo-500"
+                                  placeholder="Write your answer clearly..."></textarea>
+            <div class="flex justify-end">
+              <button id="postAnswerBtn" type="submit"
+                      class="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
+                Post Your Answer
+              </button>
+            </div>
+          </form>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const API_BASE = "http://localhost:8080/api";
+  const params = new URLSearchParams(window.location.search);
+  const questionId = Number(params.get("id"));
+
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text ?? "";
+    return div.innerHTML;
+  }
+
+  function renderTags(tags) {
+    const tagWrap = document.getElementById("questionTags");
+    tagWrap.innerHTML = "";
+
+    if (!Array.isArray(tags) || tags.length === 0) {
+      tagWrap.innerHTML =
+              '<span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-slate-500">No tags</span>';
+      return;
+    }
+
+    tags.forEach((tag) => {
+      const span = document.createElement("span");
+      span.className = "rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700";
+      span.textContent = `#${tag}`;
+      tagWrap.appendChild(span);
+    });
+  }
+
+  function createAnswerCard(answer, canMarkBest) {
+    const upvotes = Number(answer.upvotes ?? 0);
+    const isBest = !!answer.bestAnswer;
+
+    const card = document.createElement("article");
+    card.className = "rounded-2xl border border-gray-200 bg-white p-4";
+    card.innerHTML = `
+      <p class="whitespace-pre-wrap text-sm leading-6 text-slate-700">${escapeHtml(answer.content || "")}</p>
+      <div class="mt-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <p class="text-sm text-slate-600">
+            Answered by <span class="font-semibold text-slate-900">${escapeHtml(answer.username || "Unknown")}</span>
+          </p>
+          ${isBest ? '<span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Best Answer</span>' : ""}
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button"
+                  class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+            Upvote (${upvotes})
+          </button>
+          ${canMarkBest && !isBest ? `
+            <button type="button"
+                    class="mark-best-btn rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                    data-answer-id="${answer.id}">
+              Mark as Answer
+            </button>
+          ` : ""}
+        </div>
+      </div>
+    `;
+    return card;
+  }
+
+  function renderAnswers(answers, canMarkBest) {
+    const container = document.getElementById("answersContainer");
+    const count = document.getElementById("answersCount");
+    const list = Array.isArray(answers) ? answers : [];
+
+    count.textContent = String(list.length);
+    container.innerHTML = "";
+
+    if (list.length === 0) {
+      container.innerHTML =
+              '<div class="rounded-2xl bg-gray-50 p-4 text-sm text-slate-500">No answers yet.</div>';
+      return;
+    }
+
+    list.forEach((answer) => container.appendChild(createAnswerCard(answer, canMarkBest)));
+
+    container.querySelectorAll(".mark-best-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        try {
+          const answerId = Number(btn.dataset.answerId);
+          await markBestAnswer(answerId);
+          await loadQuestion();
+        } catch (err) {
+          console.error(err);
+          alert(err.message || "Failed to mark best answer");
+        }
+      });
+    });
+  }
+
+  async function loadQuestion() {
+    const loading = document.getElementById("questionLoading");
+    const block = document.getElementById("questionBlock");
+
+    if (!questionId || Number.isNaN(questionId)) {
+      loading.textContent = "Invalid question id.";
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/questions/${questionId}`);
+      if (!response.ok) throw new Error("Failed to fetch question details");
+
+      const question = await response.json();
+
+      document.getElementById("questionTitle").textContent = question.title || "Untitled";
+      document.getElementById("questionContent").textContent = question.content || "";
+      document.getElementById("questionUser").textContent = question.username || "Unknown";
+      document.getElementById("questionReputation").textContent = String(question.reputation ?? 0);
+
+      renderTags(question.tags);
+
+      const currentUsername = localStorage.getItem("username");
+      const canMarkBest = !!currentUsername && currentUsername === question.username;
+      renderAnswers(question.answers, canMarkBest);
+
+      loading.classList.add("hidden");
+      block.classList.remove("hidden");
+    } catch (err) {
+      console.error(err);
+      loading.textContent = "Failed to load question.";
+    }
+  }
+
+  async function postAnswer(content) {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      alert("Please login first.");
+      window.location.href = "auth.html";
+      return;
+    }
+
+    const response = await fetch(`${API_BASE}/answers/post`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        questionId: questionId,
+        userId: Number(userId),
+        content: content
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to post answer");
+    }
+    return data;
+  }
+
+  async function markBestAnswer(answerId) {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      alert("Please login first.");
+      window.location.href = "auth.html";
+      return;
+    }
+
+    const response = await fetch(`${API_BASE}/answers/${answerId}/mark-best?userId=${userId}`, {
+      method: "PATCH"
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to mark best answer");
+    }
+    return data;
+  }
+
+  document.getElementById("postAnswerForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const textarea = document.getElementById("answerContent");
+    const btn = document.getElementById("postAnswerBtn");
+    const content = textarea.value.trim();
+
+    if (!content) {
+      alert("Answer content is required.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Posting...";
+
+    try {
+      await postAnswer(content);
+      location.reload();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to post answer");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Post Your Answer";
+    }
+  });
+
+  // Sidebar + logout
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("overlay");
+  const menuBtn = document.getElementById("menuBtn");
+
+  function openSidebar() {
+    sidebar?.classList.remove("-translate-x-full");
+    overlay?.classList.remove("hidden");
+  }
+
+  function closeSidebar() {
+    sidebar?.classList.add("-translate-x-full");
+    overlay?.classList.add("hidden");
+  }
+
+  menuBtn?.addEventListener("click", openSidebar);
+  overlay?.addEventListener("click", closeSidebar);
+
+  document.getElementById("logoutBtn")?.addEventListener("click", () => {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+    window.location.href = "auth.html";
+  });
+
+  window.addEventListener("DOMContentLoaded", loadQuestion);
+</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StackIt Explore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased">
+<div class="min-h-screen">
+    <aside class="fixed inset-y-0 left-0 z-40 w-20 border-r border-zinc-800 bg-zinc-950/95">
+        <div class="flex h-full flex-col items-center py-6">
+            <div class="mb-8 flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-sm font-extrabold text-white">SI</div>
+            <nav class="flex w-full flex-1 flex-col items-center gap-2 text-zinc-400">
+                <button class="nav-link h-11 w-11 rounded-xl border border-zinc-800 bg-zinc-900/70" data-target="feed" data-label="Feed"><i data-lucide="newspaper" class="h-5 w-5"></i></button>
+                <button class="nav-link h-11 w-11 rounded-xl border border-zinc-800 bg-zinc-900/70" data-target="trending" data-label="Trending"><i data-lucide="flame" class="h-5 w-5"></i></button>
+                <button class="nav-link h-11 w-11 rounded-xl border border-zinc-800 bg-zinc-900/70" data-target="circles" data-label="Circles"><i data-lucide="users" class="h-5 w-5"></i></button>
+                <button class="nav-link h-11 w-11 rounded-xl border border-zinc-800 bg-zinc-900/70" data-target="my-questions" data-label="My Questions"><i data-lucide="folder-closed" class="h-5 w-5"></i></button>
+            </nav>
+        </div>
+    </aside>
+    <div id="dashboard-root" class="ml-20"></div>
+</div>
+
+<div id="settings-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative mx-auto mt-24 w-[92%] max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <h3 class="text-lg font-bold">Profile Settings</h3>
+        <div class="mt-4 space-y-3">
+            <input id="settings-name-input" type="text" class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2" placeholder="Display name" />
+            <input id="settings-avatar-input" type="url" class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2" placeholder="Avatar URL" />
+            <div class="flex justify-end gap-2">
+                <button id="cancel-settings-btn" class="rounded-xl border border-zinc-700 px-4 py-2">Cancel</button>
+                <button id="save-profile-btn" class="rounded-xl bg-indigo-600 px-4 py-2">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="new-post-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative mx-auto mt-20 w-[94%] max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <h3 class="text-lg font-bold">Create New Thread</h3>
+        <form id="new-post-form" class="mt-4 space-y-3">
+            <input id="post-title-input" required type="text" class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2" placeholder="Question title" />
+            <textarea id="post-body-input" required rows="4" class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2" placeholder="Question details"></textarea>
+            <input id="post-tags-input" type="text" class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2" placeholder="java,springboot,api" />
+            <div class="flex justify-end gap-2">
+                <button type="button" id="cancel-new-post-btn" class="rounded-xl border border-zinc-700 px-4 py-2">Cancel</button>
+                <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2">Post Question</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="app-toast" class="hidden fixed right-6 top-24 z-[60] rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm"></div>
+
+<script>
+    const API_BASE = "http://localhost:8080";
+    const $ = (id) => document.getElementById(id);
+
+    function buildAvatarUrl(name) {
+        const safeName = encodeURIComponent(name || "User");
+        return `https://ui-avatars.com/api/?name=${safeName}&background=E5E7EB&color=111827&bold=true`;
+    }
+
+    let currentUser = {
+        id: Number(localStorage.getItem("userId")) || null,
+        username: "kanishk56",
+        displayName: "kanishk56",
+        avatar: buildAvatarUrl("kanishk56")
+    };
+
+    let users = [];
+    let questions = [];
+    let followedUserIds = new Set();
+    let activeRoute = "feed";
+    let activeSearch = "";
+
+    function escapeHtml(text) {
+        return String(text ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function showToast(message) {
+        const t = $("app-toast");
+        if (!t) return;
+        t.textContent = message;
+        t.classList.remove("hidden");
+        setTimeout(() => t.classList.add("hidden"), 1500);
+    }
+
+    function upsertUser(u) {
+        if (!u) return;
+        const idx = users.findIndex(x => Number(x.id) === Number(u.id));
+        if (idx === -1) users.push(u);
+        else users[idx] = { ...users[idx], ...u };
+    }
+
+    function normalizeUser(raw) {
+        if (!raw) return null;
+        const username = raw.username || "user";
+        const displayName = raw.displayName || raw.username || "User";
+        return {
+            id: Number(raw.id),
+            username,
+            displayName,
+            avatar: raw.avatarUrl || raw.avatar || buildAvatarUrl(displayName),
+            bio: raw.bio || "",
+            followersCount: Number(raw.followersCount || 0),
+            followingCount: Number(raw.followingCount || 0)
+        };
+    }
+
+    function normalizeQuestion(raw) {
+        if (!raw) return null;
+        const username = raw.username || raw.displayName || "user";
+        const displayName = raw.displayName || raw.username || "User";
+        return {
+            id: Number(raw.id),
+            title: raw.title || "Untitled",
+            description: raw.description ?? raw.content ?? "",
+            tags: Array.isArray(raw.tags) ? raw.tags : [],
+            upvotes: Number(raw.upvotes || 0),
+            userId: raw.userId != null ? Number(raw.userId) : null,
+            username,
+            displayName,
+            reputation: raw.reputation != null ? Number(raw.reputation) : null,
+            answerCount: raw.answerCount != null ? Number(raw.answerCount) : 0,
+            answers: Array.isArray(raw.answers) ? raw.answers : [],
+            createdAt: raw.createdAt || "Recently",
+            avatar: raw.avatarUrl || raw.profileImageUrl || buildAvatarUrl(displayName)
+        };
+    }
+
+    async function readJsonSafe(res) {
+        try { return await res.json(); } catch { return {}; }
+    }
+
+    function syncTopRightProfile() {
+        const nameEl = $("profile-name");
+        const avatarEl = $("profile-avatar");
+        if (nameEl) nameEl.textContent = currentUser.displayName || currentUser.username || "User";
+        if (avatarEl) avatarEl.src = currentUser.avatar || buildAvatarUrl(currentUser.displayName || currentUser.username || "User");
+    }
+
+    async function loadCurrentUserProfile() {
+        const fallbackId = Number(localStorage.getItem("userId"));
+        const endpoints = [
+            "/api/user/me",
+            Number.isFinite(fallbackId) && fallbackId > 0 ? `/api/users/${fallbackId}` : null
+        ].filter(Boolean);
+
+        for (const endpoint of endpoints) {
+            try {
+                const res = await fetch(`${API_BASE}${endpoint}`);
+                if (!res.ok) continue;
+                const data = await res.json();
+
+                const normalized = normalizeUser(data) || {};
+                currentUser = {
+                    ...currentUser,
+                    ...normalized,
+                    username: normalized.username || currentUser.username || "kanishk56",
+                    displayName: normalized.displayName || normalized.username || currentUser.displayName || "kanishk56",
+                    avatar: normalized.avatar || currentUser.avatar || buildAvatarUrl(normalized.displayName || normalized.username || "kanishk56")
+                };
+                syncTopRightProfile();
+                return;
+            } catch (err) {
+                // Try next endpoint
+            }
+        }
+
+        syncTopRightProfile();
+    }
+
+    async function loadRealFeed() {
+        const res = await fetch(`${API_BASE}/api/questions`);
+        if (!res.ok) throw new Error("Could not load feed");
+
+        const data = await res.json();
+        questions = (Array.isArray(data) ? data : []).map(normalizeQuestion).filter(Boolean);
+
+        questions.forEach(q => {
+            if (Number.isFinite(q.userId)) {
+                upsertUser({
+                    id: q.userId,
+                    username: q.username,
+                    displayName: q.displayName,
+                    avatar: q.avatar,
+                    followersCount: 0,
+                    followingCount: 0
+                });
+            }
+        });
+
+        renderQuestionsFeed(questions);
+    }
+
+    async function fetchFollowing() {
+        if (!Number.isFinite(Number(currentUser.id))) return;
+
+        const res = await fetch(`${API_BASE}/api/social/following/${Number(currentUser.id)}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const ids = [];
+        (Array.isArray(data) ? data : []).forEach(raw => {
+            const u = normalizeUser(raw);
+            if (!u) return;
+            upsertUser(u);
+            ids.push(Number(u.id));
+        });
+        followedUserIds = new Set(ids);
+    }
+
+    async function saveProfileSettings() {
+        const displayName = $("settings-name-input").value.trim();
+        const avatarUrl = $("settings-avatar-input").value.trim();
+
+        const res = await fetch(`${API_BASE}/api/users/update`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: Number(currentUser.id),
+                displayName: displayName || currentUser.displayName,
+                avatarUrl: avatarUrl || currentUser.avatar
+            })
+        });
+
+        const data = await readJsonSafe(res);
+        if (!res.ok) {
+            alert(data.message || "Profile update failed");
+            return;
+        }
+
+        const normalized = normalizeUser(data) || {};
+        currentUser = {
+            ...currentUser,
+            ...normalized,
+            username: normalized.username || currentUser.username,
+            displayName: normalized.displayName || normalized.username || currentUser.displayName,
+            avatar: normalized.avatar || currentUser.avatar
+        };
+
+        upsertUser(currentUser);
+        syncTopRightProfile();
+        $("settings-modal").classList.add("hidden");
+        showToast("Profile updated");
+    }
+
+    async function createQuestionFromForm() {
+        const title = $("post-title-input").value.trim();
+        const content = $("post-body-input").value.trim();
+        const tags = $("post-tags-input").value.trim().split(",").map(t => t.trim()).filter(Boolean);
+        if (!title || !content) return;
+
+        const res = await fetch(`${API_BASE}/api/questions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, content, tags, userId: Number(currentUser.id) })
+        });
+
+        const data = await readJsonSafe(res);
+        if (!res.ok) {
+            alert(data.message || "Question create failed");
+            return;
+        }
+
+        await loadRealFeed();
+        applyRoute("feed", "Feed");
+        $("new-post-modal").classList.add("hidden");
+        $("new-post-form").reset();
+        showToast("Question posted");
+    }
+
+    async function toggleFollow(targetUserId) {
+        const targetId = Number(targetUserId);
+        if (!Number.isFinite(targetId) || targetId === Number(currentUser.id)) return;
+
+        const method = followedUserIds.has(targetId) ? "DELETE" : "POST";
+        const res = await fetch(`${API_BASE}/api/social/follow`, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ followerId: Number(currentUser.id), followingId: targetId })
+        });
+
+        const data = await readJsonSafe(res);
+        if (!res.ok) {
+            alert(data.message || "Follow update failed");
+            return;
+        }
+
+        if (method === "POST") followedUserIds.add(targetId);
+        else followedUserIds.delete(targetId);
+
+        applyRoute(activeRoute, activeRoute);
+    }
+    window.toggleFollow = toggleFollow;
+
+    async function postAnswer(questionId, content) {
+        const res = await fetch(`${API_BASE}/api/answers`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ questionId: Number(questionId), userId: Number(currentUser.id), content })
+        });
+        const data = await readJsonSafe(res);
+        if (!res.ok) throw new Error(data.message || "Answer post failed");
+        return data;
+    }
+    window.postAnswer = postAnswer;
+
+    function followButtonHtml(userId) {
+        if (!Number.isFinite(Number(userId)) || Number(userId) === Number(currentUser.id)) {
+            return `<span class="inline-flex rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-xs text-zinc-400">You</span>`;
+        }
+        const following = followedUserIds.has(Number(userId));
+        return `<button onclick="toggleFollow(${Number(userId)})" class="inline-flex rounded-full border px-3 py-1 text-xs ${following ? "border-zinc-700 bg-zinc-800 text-zinc-300" : "border-indigo-500 text-indigo-400"}">${following ? "Following" : "Follow"}</button>`;
+    }
+
+    function createCard(data) {
+        const name = data.username || data.displayName || "User";
+        const tags = (data.tags || []).map(tag => `<span class="rounded-full border border-zinc-700 px-2 py-1 text-zinc-300">#${escapeHtml(tag)}</span>`).join("");
+
+        return `
+        <article class="rounded-2xl border border-zinc-800 bg-zinc-900/45 p-5">
+            <div class="mb-4 flex items-center justify-between">
+                <div class="flex items-start gap-3">
+                    <img src="${escapeHtml(data.avatar || buildAvatarUrl(name))}" class="h-10 w-10 rounded-full object-cover" alt="User" />
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-medium text-zinc-100">${escapeHtml(name)}</p>
+                            <span class="inline-flex rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300">Following</span>
+                        </div>
+                        <p class="text-xs text-zinc-400">@${escapeHtml(name)}</p>
+                    </div>
+                </div>
+                <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2 py-1 text-[11px]">Verified</span>
+            </div>
+
+            <h4 class="text-lg font-bold">${escapeHtml(data.title)}</h4>
+            <p class="mt-2 line-clamp-2 text-sm text-zinc-400">${escapeHtml(data.description)}</p>
+
+            <div class="mt-5 flex items-center justify-between">
+                <div class="flex flex-wrap gap-2 text-xs">${tags}</div>
+                <span class="text-xs text-zinc-500">${escapeHtml(data.createdAt || "Recently")}</span>
+            </div>
+        </article>
+    `;
+    }
+
+    function renderQuestionsFeed(list) {
+        const container = $("questions-feed-container");
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        if (!Array.isArray(list) || list.length === 0) {
+            container.innerHTML = `
+                <div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-8 text-center">
+                    <p class="text-zinc-300">No questions found for this view.</p>
+                </div>
+            `;
+            const resultCount = $("resultCount");
+            if (resultCount) resultCount.textContent = "0 questions";
+            return;
+        }
+
+        list.forEach(question => {
+            container.insertAdjacentHTML("beforeend", createCard(question));
+        });
+
+        const resultCount = $("resultCount");
+        if (resultCount) resultCount.textContent = `${list.length} question${list.length === 1 ? "" : "s"}`;
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function routeDataSet(route) {
+        if (route === "feed") return [...questions];
+        if (route === "trending") return [...questions].reverse();
+        if (route === "my-questions") return questions.filter(q => Number(q.userId) === Number(currentUser.id));
+        return [];
+    }
+
+    function filterQuestionsBySearch(list, query) {
+        const q = (query || "").trim().toLowerCase();
+        if (!q) return list;
+
+        return list.filter(x =>
+            `${x.title} ${x.description} ${(x.tags || []).join(" ")} ${x.username}`.toLowerCase().includes(q)
+        );
+    }
+
+    async function fetchAndRenderCircles() {
+        const root = $("dashboard-root");
+        const res = await fetch(`${API_BASE}/api/social/following/${Number(currentUser.id)}`);
+        const data = res.ok ? await res.json() : [];
+        const circles = Array.isArray(data) ? data.map(normalizeUser).filter(Boolean) : [];
+        circles.forEach(upsertUser);
+
+        root.innerHTML = `
+        <main class="mx-auto max-w-[1400px] px-6 py-8">
+            <div class="mb-6 flex items-center justify-between">
+                <h2 class="text-3xl font-extrabold">Circles</h2>
+                <button id="back-to-dashboard-btn" class="rounded-xl border border-zinc-700 px-4 py-2">Back</button>
+            </div>
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                ${circles.length ? circles.map(u => `
+                    <article class="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-5">
+                        <div class="flex items-center gap-4">
+                            <img src="${escapeHtml(u.avatar)}" class="h-14 w-14 rounded-full object-cover border border-zinc-700" />
+                            <div>
+                                <h3 class="text-lg font-bold">${escapeHtml(u.displayName)}</h3>
+                                <p class="text-xs text-zinc-500">${Number(u.followersCount)} followers</p>
+                            </div>
+                        </div>
+                        <div class="mt-4">${followButtonHtml(u.id)}</div>
+                    </article>
+                `).join("") : `<div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-8">You are not following anyone yet.</div>`}
+            </div>
+        </main>
+    `;
+        $("back-to-dashboard-btn")?.addEventListener("click", () => {
+            renderDashboardShell();
+            applyRoute("feed", "Feed");
+        });
+    }
+
+    function applyRoute(route, label) {
+        activeRoute = route;
+        document.querySelectorAll(".nav-link").forEach(b => b.classList.remove("border-zinc-500", "text-zinc-100"));
+        document.querySelector(`.nav-link[data-target="${route}"]`)?.classList.add("border-zinc-500", "text-zinc-100");
+
+        if (route === "circles") return void fetchAndRenderCircles();
+
+        if (route === "feed" || route === "trending" || route === "my-questions") {
+            $("hero")?.classList.remove("hidden");
+            $("feed")?.classList.remove("hidden");
+            $("route-placeholder")?.classList.add("hidden");
+
+            const filtered = filterQuestionsBySearch(routeDataSet(route), activeSearch);
+            renderQuestionsFeed(filtered);
+
+            const feedTitle = $("feed-title");
+            if (feedTitle) {
+                feedTitle.textContent = route === "my-questions"
+                    ? "My Questions"
+                    : (route === "trending" ? "Trending" : "Feed");
+            }
+            return;
+        }
+
+        $("hero")?.classList.add("hidden");
+        $("feed")?.classList.add("hidden");
+        $("route-placeholder")?.classList.remove("hidden");
+        $("route-title").textContent = label || "Section";
+        $("route-message").textContent = `Navigated to "${label || route}" section`;
+    }
+
+    function renderDashboardShell() {
+        $("dashboard-root").innerHTML = `
+    <header class="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/50">
+        <div class="mx-auto flex h-20 max-w-[1400px] items-center gap-6 px-6">
+            <h1 class="text-xl font-extrabold">StackIt</h1>
+            <div class="flex-1">
+                <input id="searchInput" type="text" placeholder="Search questions, tags..." class="w-full rounded-xl border border-zinc-800 bg-zinc-900/80 py-3 px-4 text-sm" />
+            </div>
+            <button id="profile-display" class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/90 px-3 py-2">
+                <img id="profile-avatar" src="${escapeHtml(currentUser.avatar)}" class="h-9 w-9 rounded-full object-cover" />
+                <p id="profile-name" class="text-sm font-semibold">${escapeHtml(currentUser.displayName || currentUser.username)}</p>
+            </button>
+        </div>
+    </header>
+    <main class="mx-auto max-w-[1400px] px-6 py-8">
+        <section id="hero" class="rounded-3xl border border-zinc-800 bg-zinc-900/30 p-10">
+            <h2 class="text-3xl md:text-5xl font-black">The Future of Knowledge Sharing</h2>
+            <div class="mt-6"><button id="heroStartBtn" class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold">Start a Discussion</button></div>
+        </section>
+        <section id="feed" class="mt-10">
+            <div class="mb-5 flex items-center justify-between">
+                <h3 id="feed-title" class="text-2xl font-extrabold">Feed</h3>
+                <p class="text-sm text-zinc-500" id="resultCount">0 questions</p>
+            </div>
+            <div id="questions-feed-container" class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"></div>
+        </section>
+        <section id="route-placeholder" class="hidden mt-10 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-8">
+            <h3 id="route-title" class="text-2xl font-extrabold"></h3>
+            <p id="route-message" class="mt-2 text-zinc-400"></p>
+        </section>
+    </main>`;
+        bindDashboardEvents();
+        if (window.lucide) lucide.createIcons();
+        syncTopRightProfile();
+    }
+
+    function bindDashboardEvents() {
+        $("profile-display")?.addEventListener("click", () => {
+            $("settings-name-input").value = currentUser.displayName || currentUser.username || "";
+            $("settings-avatar-input").value = currentUser.avatar || "";
+            $("settings-modal").classList.remove("hidden");
+        });
+        $("cancel-settings-btn")?.addEventListener("click", () => $("settings-modal").classList.add("hidden"));
+        $("close-settings-modal")?.addEventListener("click", () => $("settings-modal").classList.add("hidden"));
+        $("save-profile-btn")?.addEventListener("click", saveProfileSettings);
+
+        $("heroStartBtn")?.addEventListener("click", () => $("new-post-modal").classList.remove("hidden"));
+        $("cancel-new-post-btn")?.addEventListener("click", () => $("new-post-modal").classList.add("hidden"));
+        $("close-new-post-modal")?.addEventListener("click", () => $("new-post-modal").classList.add("hidden"));
+        $("new-post-form")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await createQuestionFromForm();
+        });
+        $("searchInput")?.addEventListener("input", (e) => {
+            activeSearch = e.target.value || "";
+            applyRoute(activeRoute, activeRoute);
+        });
+    }
+
+    function bindSidebar() {
+        document.querySelectorAll(".nav-link").forEach(btn => {
+            btn.addEventListener("click", () => applyRoute(btn.dataset.target, btn.dataset.label));
+        });
+    }
+
+    async function initApp() {
+        await loadCurrentUserProfile();
+        renderDashboardShell();
+        bindSidebar();
+        await loadRealFeed();
+        await fetchFollowing();
+        applyRoute("feed", "Feed");
+    }
+
+    window.onload = () => {
+        initApp().catch((err) => {
+            console.error(err);
+            alert("Failed to initialize app. Please login again.");
+        });
+    };
+</script>
+</body>
+</html>

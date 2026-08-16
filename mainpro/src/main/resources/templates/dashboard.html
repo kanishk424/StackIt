@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StackIt Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        .line-clamp-2 {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased" style="background:#09090b;">
+<div class="min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed inset-y-0 left-0 z-40 w-20 border-r border-zinc-800 bg-zinc-950/95 backdrop-blur-xl">
+        <div class="flex h-full flex-col items-center py-6">
+            <div class="mb-8 flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-sm font-extrabold text-white">
+                SI
+            </div>
+
+            <nav class="flex w-full flex-1 flex-col items-center gap-2 text-zinc-400">
+                <p class="mt-1 mb-1 text-[10px] uppercase tracking-[0.2em] text-zinc-500">Main</p>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="feed" data-label="Feed">
+                    <i data-lucide="newspaper" class="h-5 w-5"></i>
+                </button>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="trending" data-label="Trending">
+                    <i data-lucide="flame" class="h-5 w-5"></i>
+                </button>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="circles" data-label="Circles">
+                    <i data-lucide="users" class="h-5 w-5"></i>
+                </button>
+
+                <p class="mt-6 mb-1 text-[10px] uppercase tracking-[0.2em] text-zinc-500">Personal</p>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="my-questions" data-label="My Questions">
+                    <i data-lucide="folder-closed" class="h-5 w-5"></i>
+                </button>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="bookmarks" data-label="Bookmarks">
+                    <i data-lucide="bookmark" class="h-5 w-5"></i>
+                </button>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="analytics" data-label="Analytics">
+                    <i data-lucide="bar-chart-3" class="h-5 w-5"></i>
+                </button>
+
+                <p class="mt-6 mb-1 text-[10px] uppercase tracking-[0.2em] text-zinc-500">Admin</p>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="api-docs" data-label="API Docs">
+                    <i data-lucide="file-code-2" class="h-5 w-5"></i>
+                </button>
+                <button class="nav-link group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 hover:border-zinc-600 hover:text-zinc-100" data-target="settings" data-label="Settings">
+                    <i data-lucide="settings" class="h-5 w-5"></i>
+                </button>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <div id="dashboard-root" class="ml-20"></div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative mx-auto mt-24 w-[92%] max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+        <div class="mb-5 flex items-center justify-between">
+            <h3 class="text-lg font-bold tracking-tight text-zinc-100">Profile Settings</h3>
+            <button id="close-settings-modal" class="rounded-md border border-zinc-700 px-2 py-1 text-zinc-300 hover:text-white hover:border-zinc-500">X</button>
+        </div>
+
+        <form id="settings-form" class="space-y-4">
+            <div>
+                <label class="mb-1 block text-sm text-zinc-300" for="settings-name-input">Display Name</label>
+                <input id="settings-name-input" type="text"
+                       class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-zinc-500" />
+            </div>
+            <div>
+                <label class="mb-1 block text-sm text-zinc-300" for="settings-avatar-input">Avatar URL</label>
+                <input id="settings-avatar-input" type="url"
+                       class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-zinc-500" />
+            </div>
+
+            <div class="pt-2 flex justify-end gap-2">
+                <button type="button" id="cancel-settings-btn"
+                        class="rounded-xl border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:border-zinc-500">
+                    Cancel
+                </button>
+                <button id="save-profile-btn" type="button"
+                        class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- New Post Modal -->
+<div id="new-post-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative mx-auto mt-20 w-[94%] max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+        <div class="mb-5 flex items-center justify-between">
+            <h3 class="text-lg font-bold tracking-tight text-zinc-100">Create New Thread</h3>
+            <button id="close-new-post-modal" class="rounded-md border border-zinc-700 px-2 py-1 text-zinc-300 hover:text-white hover:border-zinc-500">X</button>
+        </div>
+
+        <form id="new-post-form" class="space-y-4">
+            <div>
+                <label class="mb-1 block text-sm text-zinc-300" for="post-title-input">Question Title</label>
+                <input id="post-title-input" required type="text"
+                       class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-zinc-500"
+                       placeholder="Enter your question title" />
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm text-zinc-300" for="post-body-input">Question Details</label>
+                <div class="relative rounded-xl border border-zinc-700 bg-zinc-950 focus-within:border-zinc-500 transition">
+                    <textarea id="post-body-input" required rows="4"
+                              class="w-full rounded-xl bg-transparent px-3 py-2 text-zinc-100 outline-none resize-none pr-10"
+                              placeholder="Explain your issue clearly..."></textarea>
+                    <button type="button" id="attach-file-btn"
+                            title="Attach file"
+                            class="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition">
+                        <i data-lucide="paperclip" class="h-3.5 w-3.5"></i>
+                    </button>
+                </div>
+                <input id="post-file-input" type="file" class="hidden" accept="image/*,.pdf,.txt,.md,.zip" />
+                <div id="file-preview-strip" class="hidden mt-2 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2">
+                    <i data-lucide="file" class="h-4 w-4 text-zinc-400 flex-shrink-0"></i>
+                    <span id="file-preview-name" class="text-xs text-zinc-300 truncate flex-1"></span>
+                    <button type="button" id="remove-file-btn"
+                            class="flex-shrink-0 rounded-md border border-zinc-700 p-0.5 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition">
+                        <i data-lucide="x" class="h-3 w-3"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm text-zinc-300" for="post-tags-input">Tags (comma separated)</label>
+                <input id="post-tags-input" type="text"
+                       class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-zinc-500"
+                       placeholder="java, springboot, api" />
+            </div>
+
+            <div class="pt-2 flex justify-end gap-2">
+                <button type="button" id="cancel-new-post-btn"
+                        class="rounded-xl border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:border-zinc-500">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
+                    Post Question
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="app-toast" class="pointer-events-none fixed right-6 top-24 z-[60] hidden rounded-xl border border-zinc-700 bg-zinc-900/95 px-4 py-3 text-sm text-zinc-100 shadow-xl backdrop-blur"></div>
+
+<script>
+    (function () {
+        const userRaw = localStorage.getItem("user");
+        if (!userRaw) {
+            window.location.href = "auth.html";
+            return;
+        }
+        try {
+            const parsed = JSON.parse(userRaw);
+            if (!parsed || !(parsed.id || parsed.userId)) {
+                localStorage.removeItem("user");
+                window.location.href = "auth.html";
+            }
+        } catch {
+            localStorage.removeItem("user");
+            window.location.href = "auth.html";
+        }
+    })();
+
+    const API_BASE = "http://localhost:8080";
+    const $ = (id) => document.getElementById(id);
+
+    function getStoredUser() {
+        const raw = localStorage.getItem("user");
+        if (!raw) return null;
+        try { return JSON.parse(raw); } catch { return null; }
+    }
+
+    const storedUser = getStoredUser();
+
+    const defaultProfile = {
+        id: Number(storedUser?.id ?? storedUser?.userId ?? localStorage.getItem("userId")) || 1,
+        displayName: storedUser?.name || localStorage.getItem("displayName") || localStorage.getItem("username") || "Kanishk M",
+        username: storedUser?.username || localStorage.getItem("username") || "kanishk56",
+        avatar: localStorage.getItem("avatar") || "https://images.unsplash.com/photo-1545996124-0501ebae84d0?auto=format&fit=crop&w=160&q=80",
+        verified: true,
+        reputation: 0,
+        followersCount: 0,
+        followingCount: 0
+    };
+
+    let currentUser = { ...defaultProfile };
+    let users = [];
+    let questions = [];
+    let circlesCache = [];
+    let followersCache = [];
+    let followingIds = new Set();
+
+    let activeRoute = "feed";
+    let activeSearch = "";
+    let questionFeedEventsBound = false;
+    let selectedFile = null;
+
+    const fallbackUsers = [
+        { id: 1, displayName: "Kanishk M", username: "kanishk56", avatar: "https://images.unsplash.com/photo-1545996124-0501ebae84d0?auto=format&fit=crop&w=160&q=80", verified: true, followersCount: 1240, followingCount: 345 },
+        { id: 2, displayName: "Aditi Rao", username: "aditi.rao", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80", verified: true, followersCount: 980, followingCount: 201 },
+        { id: 3, displayName: "Vikram S", username: "vikram.sql", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80", verified: true, followersCount: 1540, followingCount: 189 },
+        { id: 4, displayName: "Nisha K", username: "nisha.arch", avatar: "https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=160&q=80", verified: true, followersCount: 860, followingCount: 230 }
+    ];
+
+    const fallbackQuestions = [
+        { id: 201, userId: 2, title: "How to secure a Spring Boot API using JWT best practices?", content: "I have implemented JWT authentication, but token refresh and role-based endpoint protection are still inconsistent in production traffic.", tags: ["springboot", "java", "security"], upvotes: 12, answerCount: 2, createdAt: "2 mins ago", answers: [] },
+        { id: 202, userId: 3, title: "Best indexing strategy for high-volume PostgreSQL analytics table?", content: "Our analytics table crossed 80M rows. Query latency is increasing sharply and partial indexes are not giving expected gains.", tags: ["postgresql", "database", "performance"], upvotes: 9, answerCount: 1, createdAt: "8 mins ago", answers: [] },
+        { id: 203, userId: 4, title: "How to design clean REST versioning without endpoint explosion?", content: "I need to support v1 and v2 for multiple clients while keeping controllers and DTO mapping maintainable over time.", tags: ["api", "architecture", "springboot"], upvotes: 7, answerCount: 0, createdAt: "13 mins ago", answers: [] },
+        { id: 204, userId: 1, title: "Can Redis caching reduce load on user profile aggregation endpoints?", content: "The profile endpoint aggregates from five services. Looking for cache invalidation strategy that avoids stale counters.", tags: ["redis", "caching", "backend"], upvotes: 14, answerCount: 3, createdAt: "20 mins ago", answers: [] }
+    ];
+
+    function escapeHtml(text) {
+        return String(text ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+    }
+
+    function buildAvatarUrl(name) {
+        const safeName = encodeURIComponent(name || "User");
+        return `https://ui-avatars.com/api/?name=${safeName}&background=E5E7EB&color=111827&bold=true`;
+    }
+
+    function showToast(message) {
+        const toast = $("app-toast");
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.remove("hidden", "opacity-0");
+        toast.classList.add("opacity-100", "transition", "duration-300");
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(() => {
+            toast.classList.remove("opacity-100");
+            toast.classList.add("opacity-0");
+            setTimeout(() => toast.classList.add("hidden"), 220);
+        }, 1600);
+    }
+
+    function icon(name, cls = "h-5 w-5") {
+        return `<i data-lucide="${name}" class="${cls}"></i>`;
+    }
+
+    function getCurrentUserId() {
+        const s = getStoredUser();
+        const fromUser = Number(s?.id ?? s?.userId);
+        if (Number.isFinite(fromUser) && fromUser > 0) return fromUser;
+        return Number(currentUser?.id) || Number(localStorage.getItem("userId")) || 1;
+    }
+
+    function normalizeUser(raw) {
+        if (!raw) return null;
+        const displayName = raw.displayName || raw.username || "User";
+        const username = raw.username || displayName.toLowerCase().replace(/\s+/g, ".");
+        return {
+            id: Number(raw.id),
+            displayName,
+            username,
+            avatar: raw.avatarUrl || raw.avatar || buildAvatarUrl(displayName),
+            bio: raw.bio || "",
+            followersCount: Number(raw.followersCount || 0),
+            followingCount: Number(raw.followingCount || 0),
+            verified: true
+        };
+    }
+
+    function normalizeQuestion(raw) {
+        if (!raw) return null;
+        const displayName = raw.displayName || raw.username || "User";
+        const username = raw.username || displayName.toLowerCase().replace(/\s+/g, ".");
+
+        const rawFileUrl = raw.fileUrl || raw.filePath || null;
+        const resolvedFileUrl = rawFileUrl
+            ? (/^https?:\/\//i.test(rawFileUrl)
+                ? rawFileUrl
+                : `${API_BASE}${rawFileUrl.startsWith("/") ? "" : "/"}${rawFileUrl}`)
+            : null;
+
+        return {
+            id: Number(raw.id),
+            title: raw.title || "Untitled",
+            description: raw.description ?? raw.content ?? "",
+            tags: Array.isArray(raw.tags) ? raw.tags : [],
+            upvotes: Number(raw.upvotes || 0),
+            userId: raw.userId != null ? Number(raw.userId) : null,
+            username,
+            displayName,
+            reputation: raw.reputation != null ? Number(raw.reputation) : null,
+            answerCount: raw.answerCount != null ? Number(raw.answerCount) : (Array.isArray(raw.answers) ? raw.answers.length : 0),
+            answers: Array.isArray(raw.answers) ? raw.answers : [],
+            createdAt: raw.createdAt || "Recently",
+            avatar: raw.avatarUrl || buildAvatarUrl(displayName),
+            hasUpvoted: Boolean(raw.hasUpvoted ?? raw.upvotedByCurrentUser ?? false),
+            fileUrl: resolvedFileUrl
+        };
+    }
+
+    function normalizeCircleUser(raw) {
+        if (!raw) return null;
+        const displayName = raw.displayName || raw.username || "User";
+        const username = raw.username || displayName.toLowerCase().replace(/\s+/g, ".");
+        return {
+            id: Number(raw.id),
+            displayName,
+            username,
+            avatar: raw.avatarUrl || raw.avatar || buildAvatarUrl(displayName),
+            bio: raw.bio || "",
+            followersCount: Number(raw.followersCount || 0),
+            followingCount: Number(raw.followingCount || 0),
+            verified: true
+        };
+    }
+
+    async function readJsonSafe(res) {
+        try { return await res.json(); } catch { return {}; }
+    }
+
+    function upsertUser(u) {
+        if (!u) return;
+        const idx = users.findIndex(x => Number(x.id) === Number(u.id));
+        if (idx === -1) users.push(u);
+        else users[idx] = { ...users[idx], ...u };
+    }
+
+    function syncTopRightProfile() {
+        const nameEl = $("profile-name");
+        const avatarEl = $("profile-avatar");
+        if (nameEl) nameEl.textContent = currentUser.displayName || currentUser.username || "User";
+        if (avatarEl) avatarEl.src = currentUser.avatar || buildAvatarUrl(currentUser.displayName || currentUser.username || "User");
+    }
+
+    function renderDashboardShell() {
+        const root = $("dashboard-root");
+        if (!root) return;
+        root.innerHTML = `
+            <header class="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/50 backdrop-blur-md">
+                <div class="mx-auto flex h-20 max-w-[1400px] items-center gap-6 px-6">
+                    <div class="min-w-[120px]">
+                        <h1 class="text-xl font-extrabold tracking-tight text-white">StackIt</h1>
+                    </div>
+                    <div class="flex-1">
+                        <label for="searchInput" class="relative block">
+                            <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">${icon("search", "h-4 w-4")}</span>
+                            <input id="searchInput" type="text" placeholder="Search questions, tags, communities..."
+                                class="w-full rounded-xl border border-zinc-800 bg-zinc-900/80 py-3 pl-11 pr-24 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-zinc-600" />
+                            <kbd class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-400">Ctrl + K</kbd>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button class="relative rounded-xl border border-zinc-800 bg-zinc-900 p-2.5 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100" type="button">
+                            ${icon("bell")}
+                            <span class="absolute right-2 top-2 flex h-2.5 w-2.5">
+                                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75"></span>
+                                <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                            </span>
+                        </button>
+                        <button id="profile-display" class="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/90 px-3 py-2 hover:border-zinc-600 transition" type="button">
+                            <img id="profile-avatar" src="${escapeHtml(currentUser.avatar)}" alt="Profile" class="h-9 w-9 rounded-full object-cover" />
+                            <div class="leading-tight text-left">
+                                <p id="profile-name" class="text-sm font-semibold text-zinc-100">${escapeHtml(currentUser.displayName)}</p>
+                                <p class="text-xs text-zinc-400">Community Member</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main id="main-content-display" class="mx-auto max-w-[1400px] px-6 py-8">
+                <section id="hero" class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/30 p-10 md:p-14">
+                    <div class="absolute inset-0 opacity-20" style="background-image:url('https://images.unsplash.com/photo-1518773553398-650c184e0bb3?auto=format&fit=crop&w=2000&q=80'); background-size:cover; background-position:center;"></div>
+                    <div class="absolute inset-0 bg-gradient-to-r from-zinc-950/85 via-zinc-950/70 to-zinc-950/80"></div>
+                    <div class="relative z-10 max-w-4xl">
+                        <p class="mb-4 inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1 text-xs text-zinc-300">Premium Knowledge Network</p>
+                        <h2 class="text-4xl font-black tracking-tight text-transparent md:text-6xl bg-gradient-to-r from-zinc-100 via-zinc-300 to-zinc-500 bg-clip-text">The Future of Knowledge Sharing</h2>
+                        <p class="mt-5 max-w-2xl text-zinc-300 md:text-lg">One enterprise-grade destination for developers to ask better questions, publish trusted answers, and build enduring technical credibility.</p>
+                        <div class="mt-8 flex flex-wrap gap-3">
+                            <button id="heroStartBtn" class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-500" type="button">Start a Discussion</button>
+                            <button id="explore-community-btn" class="rounded-xl border border-zinc-700 bg-zinc-900/70 px-5 py-3 text-sm font-semibold text-zinc-200 hover:border-zinc-600" type="button">Explore Community</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="interactive-gate" class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+                    <article class="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md transition hover:scale-[1.01] hover:border-zinc-500">
+                        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900">${icon("sparkles")}</div>
+                        <h3 class="text-2xl font-extrabold tracking-tight text-zinc-100">Start a Discussion</h3>
+                        <p class="mt-2 text-sm text-zinc-400">Launch a clean, structured question thread with rich tags, context, and audience targeting.</p>
+                        <button id="gateStartBtn" class="mt-6 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-500" type="button">Create New Thread</button>
+                    </article>
+                    <article id="explore-community-card" class="cursor-pointer group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md transition hover:scale-[1.01] hover:border-zinc-500">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900">${icon("compass")}</div>
+                                <h3 class="text-2xl font-extrabold tracking-tight text-zinc-100">Explore Community</h3>
+                                <p class="mt-2 text-sm text-zinc-400">Discover trending conversations, domain circles, and expert-driven answers.</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-zinc-400">
+                                <span class="rounded-lg border border-zinc-700 bg-zinc-900 p-2">${icon("code-2", "h-4 w-4")}</span>
+                                <span class="rounded-lg border border-zinc-700 bg-zinc-900 p-2">${icon("database", "h-4 w-4")}</span>
+                                <span class="rounded-lg border border-zinc-700 bg-zinc-900 p-2">${icon("cloud", "h-4 w-4")}</span>
+                                <span class="rounded-lg border border-zinc-700 bg-zinc-900 p-2">${icon("shield", "h-4 w-4")}</span>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section id="feed" class="mt-10">
+                    <div class="mb-5 flex items-center justify-between">
+                        <h3 id="feed-title" class="text-2xl font-extrabold tracking-tight text-zinc-100">Feed</h3>
+                        <p class="text-sm text-zinc-500" id="resultCount">0 questions</p>
+                    </div>
+                    <div id="questions-feed-container" class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"></div>
+                </section>
+
+                <section id="route-placeholder" class="hidden mt-10 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-8"></section>
+            </main>
+        `;
+
+        bindDashboardEvents();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function createQuestionFromForm() {
+        const title = $("post-title-input")?.value.trim();
+        const content = $("post-body-input")?.value.trim();
+        const tagsRaw = $("post-tags-input")?.value.trim();
+        if (!title || !content) return;
+
+        const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : ["general"];
+
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("content", content);
+        formData.append("tags", tags.join(","));
+        formData.append("userId", String(Number(currentUser.id)));
+        if (selectedFile) formData.append("file", selectedFile);
+
+        const res = await fetch(`${API_BASE}/api/questions`, { method: "POST", body: formData });
+        const data = await readJsonSafe(res);
+        if (!res.ok) { alert(data.message || "Question create failed"); return; }
+
+        selectedFile = null;
+        if ($("post-file-input")) $("post-file-input").value = "";
+        $("file-preview-strip")?.classList.add("hidden");
+
+        $("new-post-form")?.reset();
+        closeNewPostModal();
+        await loadRealFeed();
+        applyRoute("feed", "Feed");
+        showToast("Question posted");
+    }
+
+    async function toggleFollow(userId) {
+        const followingId = Number(userId);
+        const followerId = getCurrentUserId();
+        if (!Number.isFinite(followingId) || !Number.isFinite(followerId)) return;
+        if (followingId === followerId) { showToast("You cannot follow yourself"); return; }
+
+        const res = await fetch(`${API_BASE}/api/social/follow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ followerId, followingId })
+        });
+        const data = await readJsonSafe(res);
+
+        if (!res.ok) {
+            const msg = String(data.message || "").toLowerCase();
+            if (!msg.includes("already")) {
+                alert(data.message || "Failed to follow");
+                return;
+            }
+        }
+
+        followingIds.add(followingId);
+
+        if (activeRoute === "circles") await fetchAndRenderCircles();
+        if (activeRoute === "feed" || activeRoute === "trending" || activeRoute === "my-questions") {
+            renderQuestionsFeed(filterQuestionsByTag(activeSearch, routeDataSet(activeRoute)));
+        }
+        showToast("Followed");
+    }
+    window.toggleFollow = toggleFollow;
+
+    async function toggleUnfollow(userId) {
+        const followingId = Number(userId);
+        const followerId = getCurrentUserId();
+        if (!Number.isFinite(followingId) || !Number.isFinite(followerId)) return;
+
+        const res = await fetch(`${API_BASE}/api/social/follow`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ followerId, followingId })
+        });
+        const data = await readJsonSafe(res);
+
+        if (!res.ok) {
+            const msg = String(data.message || "").toLowerCase();
+            if (!msg.includes("not found")) {
+                alert(data.message || "Failed to unfollow");
+                return;
+            }
+        }
+
+        followingIds.delete(followingId);
+
+        if (activeRoute === "circles") await fetchAndRenderCircles();
+        if (activeRoute === "feed" || activeRoute === "trending" || activeRoute === "my-questions") {
+            renderQuestionsFeed(filterQuestionsByTag(activeSearch, routeDataSet(activeRoute)));
+        }
+        showToast("Unfollowed");
+    }
+    window.toggleUnfollow = toggleUnfollow;
+
+    async function deleteQuestion(questionId) {
+        const qid = Number(questionId);
+        if (!confirm("Delete this question? This cannot be undone.")) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/questions/${qid}`, { method: "DELETE" });
+            const data = await readJsonSafe(res);
+
+            if (res.status !== 200) {
+                console.log("Delete request failed:", { status: res.status, body: data });
+                alert(data.message || "Failed to delete question");
+                return;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await loadRealFeed();
+            applyRoute(activeRoute, document.querySelector(`.nav-link[data-target="${activeRoute}"]`)?.dataset?.label || "Feed");
+            showToast("Question deleted");
+        } catch (err) {
+            console.log("Delete request error:", err);
+            alert("Failed to delete question");
+        }
+    }
+
+    async function deleteAnswer(answerId, questionId) {
+        const aid = Number(answerId);
+        if (!confirm("Delete this answer?")) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/answers/${aid}`, { method: "DELETE" });
+            const data = await readJsonSafe(res);
+
+            if (!res.ok) {
+                console.log("Delete answer failed:", { status: res.status, body: data });
+                alert(data.message || "Failed to delete answer");
+                return;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await loadRealFeed();
+            applyRoute(activeRoute, document.querySelector(`.nav-link[data-target="${activeRoute}"]`)?.dataset?.label || "Feed");
+            showToast("Answer deleted");
+        } catch (err) {
+            console.log("Delete answer error:", err);
+            alert("Failed to delete answer");
+        }
+    }
+    window.deleteAnswer = deleteAnswer;
+
+    function createCard(data) {
+        const username = data.username || data.displayName || "user";
+        const tagsHtml = (data.tags || [])
+            .map(tag => `<span class="rounded-full border border-zinc-700 px-2 py-1 text-zinc-300">#${escapeHtml(tag)}</span>`)
+            .join("");
+
+        const authorId = Number(data.userId);
+        const isOwner = authorId === Number(getCurrentUserId());
+        const isFollowingAuthor = followingIds.has(authorId);
+
+        const badgeHtml = isOwner
+            ? `<span class="inline-flex rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300">You</span>`
+            : `<button class="inline-flex rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:border-zinc-500"
+                        data-action="${isFollowingAuthor ? "unfollow-author" : "follow-author"}"
+                        data-user-id="${authorId}">
+                    ${isFollowingAuthor ? "Following" : "Follow"}
+               </button>`;
+
+        const upvotes = Number(data.upvotes || 0);
+        const answerCount = Number(data.answerCount || (Array.isArray(data.answers) ? data.answers.length : 0));
+        const answers = Array.isArray(data.answers) ? data.answers : [];
+        const upvoteBtnClass = data.hasUpvoted
+            ? "border-indigo-500 bg-indigo-500/10 text-indigo-300"
+            : "border-zinc-700 bg-zinc-800 text-zinc-300";
+
+        let filePreviewHtml = "";
+        if (data.fileUrl) {
+            const isImage = /\.(png|jpg|jpeg|gif|webp|svg)(\?|$)/i.test(data.fileUrl);
+            if (isImage) {
+                filePreviewHtml = `
+                    <div class="mt-3 overflow-hidden rounded-xl border border-zinc-800">
+                        <img src="${escapeHtml(data.fileUrl)}" alt="Attached image"
+                             class="w-full max-h-48 object-cover" loading="lazy"
+                             onerror="this.parentElement.style.display='none'" />
+                    </div>`;
+            } else {
+                const fileName = data.fileUrl.split("/").pop() || "attachment";
+                filePreviewHtml = `
+                    <div class="mt-3 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/60 px-3 py-2">
+                        <i data-lucide="paperclip" class="h-3.5 w-3.5 text-zinc-400 flex-shrink-0"></i>
+                        <a href="${escapeHtml(data.fileUrl)}" target="_blank" rel="noopener"
+                           class="text-xs text-indigo-400 hover:text-indigo-300 truncate">${escapeHtml(fileName)}</a>
+                    </div>`;
+            }
+        }
+
+        return `
+            <article class="rounded-2xl border border-zinc-800 bg-zinc-900/45 p-5 transition hover:scale-[1.01] hover:border-zinc-500" data-question-id="${Number(data.id)}">
+                <div class="mb-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="${escapeHtml(data.avatar || buildAvatarUrl(username))}" class="h-10 w-10 rounded-full object-cover" alt="User" />
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm font-medium text-zinc-100">${escapeHtml(data.displayName || username || "User")}</p>
+                                ${badgeHtml}
+                            </div>
+                            <p class="text-xs text-zinc-400">@${escapeHtml(username)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2 py-1 text-[11px] font-medium text-zinc-200">Verified</span>
+                        ${isOwner ? `
+                        <button class="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-red-700 hover:text-red-400 transition"
+                                data-action="delete-question" title="Delete question">
+                            <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                        </button>` : ""}
+                    </div>
+                </div>
+
+                <h4 class="text-lg font-bold tracking-tight text-zinc-100">${escapeHtml(data.title)}</h4>
+                ${filePreviewHtml}
+                <p class="mt-2 line-clamp-2 text-sm text-zinc-400">${escapeHtml(data.description)}</p>
+
+                <div class="mt-5 flex items-center justify-between gap-3">
+                    <div class="flex flex-wrap gap-2 text-xs">${tagsHtml}</div>
+                    <span class="text-xs text-zinc-500">${escapeHtml(data.createdAt || "Recently")}</span>
+                </div>
+
+                <div class="mt-4 flex items-center gap-2">
+                    <button class="rounded-full border px-3 py-1 text-xs ${upvoteBtnClass}" data-action="upvote">
+                        Upvote <span data-role="upvote-count">${upvotes}</span>
+                    </button>
+                    <button class="rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300" data-action="toggle-answer-box">
+                        Answer <span data-role="answer-count">${answerCount}</span>
+                    </button>
+                </div>
+
+                <div class="mt-3 hidden" data-role="answer-box">
+                    <textarea class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-500" rows="3" placeholder="Write your answer..."></textarea>
+                    <div class="mt-2 flex justify-end">
+                        <button class="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500" data-action="post-answer">Post Answer</button>
+                    </div>
+                </div>
+
+                <div class="mt-3 space-y-2" data-role="answers-list">
+                    ${answers.map(ans => {
+            const best = Boolean(ans.bestAnswer);
+            const canMark = Number(data.userId) === Number(currentUser.id) && !best;
+            const isAnswerOwner = Number(ans.userId) === Number(currentUser.id);
+            return `
+                            <div class="rounded-xl border ${best ? "border-emerald-600" : "border-zinc-700"} bg-zinc-900/65 p-3" data-answer-id="${Number(ans.id)}">
+                                <p class="text-sm text-zinc-200">${escapeHtml(ans.content || "")}</p>
+                                <div class="mt-2 flex items-center justify-between gap-2">
+                                    <span class="text-xs text-zinc-400">@${escapeHtml(ans.username || "user")}</span>
+                                    <div class="flex items-center gap-2">
+                                        ${canMark ? `<button class="rounded-full border border-emerald-700 px-2 py-1 text-[11px] text-emerald-300 hover:border-emerald-500" data-action="mark-correct" data-answer-id="${Number(ans.id)}">Mark as Correct</button>` : ""}
+                                        ${isAnswerOwner ? `<button class="flex h-6 w-6 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-red-700 hover:text-red-400 transition" data-action="delete-answer" data-answer-id="${Number(ans.id)}" data-question-id="${Number(data.id)}" title="Delete answer"><i data-lucide="trash-2" class="h-3 w-3"></i></button>` : ""}
+                                    </div>
+                                </div>
+                            </div>`;
+        }).join("")}
+                </div>
+            </article>
+        `;
+    }
+
+    function circleCardTemplate(user, mode = "following") {
+        const name = user.displayName || user.username || "User";
+        const uid = Number(user.id);
+        const isFollowing = followingIds.has(uid);
+        const isSelf = uid === getCurrentUserId();
+
+        let actionBtn = "";
+        if (!isSelf) {
+            if (mode === "following") {
+                actionBtn = `<button class="inline-flex rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:border-zinc-500" onclick="toggleUnfollow(${uid})">Following</button>`;
+            } else {
+                actionBtn = isFollowing
+                    ? `<button class="inline-flex rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:border-zinc-500" onclick="toggleUnfollow(${uid})">Following</button>`
+                    : `<button class="inline-flex rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:border-zinc-500" onclick="toggleFollow(${uid})">Follow</button>`;
+            }
+        }
+
+        return `
+            <article class="rounded-2xl border border-zinc-800 bg-zinc-900/45 p-5 transition hover:scale-[1.01] hover:border-zinc-500">
+                <div class="mb-4 flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-4">
+                        <img src="${escapeHtml(user.avatar || buildAvatarUrl(name))}" class="h-14 w-14 rounded-full object-cover border border-zinc-700" alt="${escapeHtml(name)}" />
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-bold tracking-tight text-zinc-100">${escapeHtml(name)}</h3>
+                                <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2 py-1 text-[11px] font-medium text-zinc-200">Verified</span>
+                            </div>
+                            <p class="text-xs text-zinc-400">@${escapeHtml(user.username || name.toLowerCase().replace(/\s+/g, "."))}</p>
+                        </div>
+                    </div>
+                    ${actionBtn}
+                </div>
+                <p class="line-clamp-2 text-sm text-zinc-400">${escapeHtml(user.bio || "No bio yet")}</p>
+                <div class="mt-5 flex items-center justify-between gap-3">
+                    <span class="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">${Number(user.followersCount || 0)} followers</span>
+                    <span class="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">${Number(user.followingCount || 0)} following</span>
+                </div>
+            </article>`;
+    }
+
+    async function upvoteQuestion(questionId) {
+        const qid = Number(questionId);
+        const res = await fetch(`${API_BASE}/api/questions/${qid}/upvote`, { method: "POST" });
+        if (!res.ok) {
+            const qFallback = questions.find(x => Number(x.id) === qid);
+            if (qFallback) { qFallback.upvotes = Number(qFallback.upvotes || 0) + 1; qFallback.hasUpvoted = true; }
+            return;
+        }
+        const payload = await readJsonSafe(res);
+        const q = questions.find(x => Number(x.id) === qid);
+        if (!q) return;
+        q.upvotes = Number(payload.upvotes ?? q.upvotes ?? 0);
+        q.hasUpvoted = Boolean(payload.hasUpvoted ?? payload.upvotedByCurrentUser ?? true);
+    }
+
+    async function postAnswerInline(questionId, content) {
+        const res = await fetch(`${API_BASE}/api/answers`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ questionId: Number(questionId), userId: getCurrentUserId(), content })
+        });
+        const data = await readJsonSafe(res);
+        if (!res.ok) throw new Error(data.message || "Failed to post answer");
+        return data;
+    }
+
+    async function markAnswerCorrect(answerId) {
+        const aId = Number(answerId);
+        const uid = getCurrentUserId();
+        let res = await fetch(`${API_BASE}/api/answers/${aId}/verify`, { method: "PUT" });
+        if (!res.ok) res = await fetch(`${API_BASE}/api/answers/${aId}/mark-best?userId=${uid}`, { method: "PATCH" });
+        const data = await readJsonSafe(res);
+        if (!res.ok) throw new Error(data.message || "Failed to mark correct answer");
+        return data;
+    }
+
+    function bindQuestionFeedEvents() {
+        const container = $("questions-feed-container");
+        if (!container || questionFeedEventsBound) return;
+        questionFeedEventsBound = true;
+
+        container.addEventListener("click", async (e) => {
+            const actionEl = e.target.closest("[data-action]");
+            if (!actionEl) return;
+
+            const card = e.target.closest("[data-question-id]");
+            if (!card) return;
+            const questionId = Number(card.dataset.questionId);
+
+            try {
+                if (actionEl.dataset.action === "follow-author") {
+                    const uid = Number(actionEl.dataset.userId);
+                    await toggleFollow(uid);
+                    return;
+                }
+
+                if (actionEl.dataset.action === "unfollow-author") {
+                    const uid = Number(actionEl.dataset.userId);
+                    await toggleUnfollow(uid);
+                    return;
+                }
+
+                if (actionEl.dataset.action === "upvote") {
+                    await upvoteQuestion(questionId);
+                    renderQuestionsFeed(filterQuestionsByTag(activeSearch, routeDataSet(activeRoute)));
+                    return;
+                }
+
+                if (actionEl.dataset.action === "toggle-answer-box") {
+                    const box = card.querySelector('[data-role="answer-box"]');
+                    if (box) box.classList.toggle("hidden");
+                    return;
+                }
+
+                if (actionEl.dataset.action === "post-answer") {
+                    const box = card.querySelector('[data-role="answer-box"]');
+                    const textarea = box ? box.querySelector("textarea") : null;
+                    const text = textarea ? textarea.value.trim() : "";
+                    if (!text) return;
+                    const newAnswer = await postAnswerInline(questionId, text);
+                    const q = questions.find(item => Number(item.id) === questionId);
+                    if (q) {
+                        if (!Array.isArray(q.answers)) q.answers = [];
+                        q.answers.push(newAnswer);
+                        q.answerCount = Number(q.answerCount || 0) + 1;
+                    }
+                    renderQuestionsFeed(filterQuestionsByTag(activeSearch, routeDataSet(activeRoute)));
+                    showToast("Answer posted");
+                    return;
+                }
+
+                if (actionEl.dataset.action === "mark-correct") {
+                    const answerId = Number(actionEl.dataset.answerId);
+                    await markAnswerCorrect(answerId);
+                    const q = questions.find(item => Number(item.id) === questionId);
+                    if (q && Array.isArray(q.answers)) {
+                        q.answers = q.answers.map(a => ({ ...a, bestAnswer: Number(a.id) === answerId }));
+                    }
+                    renderQuestionsFeed(filterQuestionsByTag(activeSearch, routeDataSet(activeRoute)));
+                    showToast("Marked as correct");
+                    return;
+                }
+
+                if (actionEl.dataset.action === "delete-question") {
+                    await deleteQuestion(questionId);
+                    return;
+                }
+
+                if (actionEl.dataset.action === "delete-answer") {
+                    const answerId = Number(actionEl.dataset.answerId);
+                    await deleteAnswer(answerId, questionId);
+                    return;
+                }
+            } catch (err) {
+                console.error(err);
+                alert(err.message || "Action failed");
+            }
+        });
+    }
+
+    function renderQuestionsFeed(list) {
+        const container = $("questions-feed-container");
+        if (!container) return;
+        container.innerHTML = "";
+        if (!Array.isArray(list) || list.length === 0) {
+            container.innerHTML = `<div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-8 text-center"><p class="text-zinc-300">No questions found for this view.</p></div>`;
+            const resultCount = $("resultCount");
+            if (resultCount) resultCount.textContent = "0 questions";
+            return;
+        }
+        list.forEach(question => { container.insertAdjacentHTML("beforeend", createCard(question)); });
+        const resultCount = $("resultCount");
+        if (resultCount) resultCount.textContent = `${list.length} question${list.length === 1 ? "" : "s"}`;
+        bindQuestionFeedEvents();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function setPlaceholderContent(html) {
+        const placeholder = $("route-placeholder");
+        if (!placeholder) return;
+        placeholder.innerHTML = html;
+        placeholder.classList.remove("hidden");
+    }
+
+    function showMainFeed() {
+        $("hero")?.classList.remove("hidden");
+        $("interactive-gate")?.classList.remove("hidden");
+        $("feed")?.classList.remove("hidden");
+        $("route-placeholder")?.classList.add("hidden");
+    }
+
+    function showPlaceholder(routeName, message) {
+        $("hero")?.classList.add("hidden");
+        $("interactive-gate")?.classList.add("hidden");
+        $("feed")?.classList.add("hidden");
+        setPlaceholderContent(`<h3 class="text-2xl font-extrabold tracking-tight text-zinc-100">${escapeHtml(routeName)}</h3><p class="mt-2 text-zinc-400">${escapeHtml(message)}</p>`);
+    }
+
+    function renderCirclesView(payload) {
+        const followers = Array.isArray(payload?.followers) ? payload.followers : [];
+        const following = Array.isArray(payload?.following) ? payload.following : [];
+
+        $("hero")?.classList.add("hidden");
+        $("interactive-gate")?.classList.add("hidden");
+        $("feed")?.classList.add("hidden");
+
+        setPlaceholderContent(`
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-2xl font-extrabold tracking-tight text-zinc-100">Circles</h3>
+                    <p class="mt-2 text-zinc-400">Your social connections</p>
+                </div>
+                <button id="back-to-feed-btn" class="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-zinc-500" type="button">Back to Feed</button>
+            </div>
+
+            <div class="mb-8">
+                <h4 class="mb-3 text-lg font-bold text-zinc-100">Following (${following.length})</h4>
+                ${following.length
+            ? `<div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">${following.map(u => circleCardTemplate(u, "following")).join("")}</div>`
+            : `<div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-8 text-center text-zinc-300">You are not following anyone yet.</div>`
+        }
+            </div>
+
+            <div>
+                <h4 class="mb-3 text-lg font-bold text-zinc-100">Followers (${followers.length})</h4>
+                ${followers.length
+            ? `<div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">${followers.map(u => circleCardTemplate(u, "followers")).join("")}</div>`
+            : `<div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-8 text-center text-zinc-300">No followers yet.</div>`
+        }
+            </div>
+        `);
+
+        $("back-to-feed-btn")?.addEventListener("click", () => applyRoute("feed", "Feed"));
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function routeDataSet(route) {
+        if (route === "feed") return [...questions];
+        if (route === "trending") return [...questions].slice().reverse();
+        if (route === "my-questions") return questions.filter(q => Number(q.userId) === Number(currentUser.id));
+        return [];
+    }
+
+    function filterQuestionsByTag(searchTerm, list) {
+        const q = (searchTerm || "").trim().toLowerCase();
+        if (!q) return list;
+        return list.filter(item => {
+            const tags = Array.isArray(item.tags) ? item.tags : [];
+            return tags.some(tag => String(tag).toLowerCase().includes(q));
+        });
+    }
+
+    async function loadCurrentUserProfile() {
+        const fallbackId = getCurrentUserId();
+        const endpoints = ["/api/user/me", Number.isFinite(fallbackId) && fallbackId > 0 ? `/api/users/${fallbackId}` : null].filter(Boolean);
+        for (const endpoint of endpoints) {
+            try {
+                const res = await fetch(`${API_BASE}${endpoint}`);
+                if (!res.ok) continue;
+                const data = await res.json();
+                const normalized = normalizeUser(data);
+                if (normalized) {
+                    currentUser = {
+                        ...currentUser,
+                        ...normalized,
+                        id: normalized.id || currentUser.id || fallbackId,
+                        username: normalized.username || currentUser.username || "kanishk56",
+                        displayName: normalized.displayName || normalized.username || currentUser.displayName || "Kanishk M",
+                        avatar: normalized.avatar || currentUser.avatar || buildAvatarUrl(normalized.displayName || normalized.username || "Kanishk M")
+                    };
+                    localStorage.setItem("userId", String(currentUser.id ?? fallbackId));
+                    localStorage.setItem("displayName", currentUser.displayName || "");
+                    localStorage.setItem("username", currentUser.username || "");
+                    localStorage.setItem("avatar", currentUser.avatar || "");
+                    syncTopRightProfile();
+                    return;
+                }
+            } catch {}
+        }
+        syncTopRightProfile();
+    }
+
+    async function loadRealFeed() {
+        try {
+            const res = await fetch(`${API_BASE}/api/questions`);
+            if (!res.ok) throw new Error("Could not load questions");
+            const data = await res.json();
+            questions = (Array.isArray(data) ? data : []).map(normalizeQuestion).filter(Boolean);
+        } catch {
+            questions = [...fallbackQuestions].map(normalizeQuestion).filter(Boolean);
+        }
+
+        users = [...fallbackUsers];
+        questions.forEach(q => {
+            if (Number.isFinite(q.userId)) {
+                upsertUser({
+                    id: q.userId,
+                    username: q.username,
+                    displayName: q.displayName,
+                    avatar: q.avatar,
+                    followersCount: 0,
+                    followingCount: 0
+                });
+            }
+        });
+
+        if (activeRoute === "feed" || activeRoute === "trending" || activeRoute === "my-questions") {
+            renderQuestionsFeed(filterQuestionsByTag(activeSearch, routeDataSet(activeRoute)));
+        }
+    }
+
+    async function loadFollowingUsers() {
+        const currentUserId = getCurrentUserId();
+        const endpoints = [
+            `${API_BASE}/api/social/following/${currentUserId}`,
+            `${API_BASE}/api/users/${currentUserId}/following`
+        ];
+
+        let loaded = false;
+        for (const url of endpoints) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) continue;
+                const data = await res.json();
+                circlesCache = (Array.isArray(data) ? data : []).map(normalizeCircleUser).filter(Boolean);
+                loaded = true;
+                break;
+            } catch {}
+        }
+
+        if (!loaded) circlesCache = [];
+
+        followingIds = new Set(circlesCache.map(u => Number(u.id)).filter(Number.isFinite));
+        circlesCache.forEach(upsertUser);
+    }
+
+    async function loadFollowersUsers() {
+        const currentUserId = getCurrentUserId();
+        try {
+            const res = await fetch(`${API_BASE}/api/social/followers/${currentUserId}`);
+            if (!res.ok) throw new Error("Could not load followers");
+            const data = await res.json();
+            followersCache = (Array.isArray(data) ? data : []).map(normalizeCircleUser).filter(Boolean);
+        } catch {
+            followersCache = [];
+        }
+        followersCache.forEach(upsertUser);
+    }
+
+    async function fetchAndRenderCircles() {
+        await Promise.all([loadFollowingUsers(), loadFollowersUsers()]);
+        renderCirclesView({ followers: followersCache, following: circlesCache });
+    }
+
+    function applyRoute(route, label) {
+        activeRoute = route;
+        document.querySelectorAll(".nav-link").forEach(btn => { btn.classList.remove("border-zinc-500", "text-zinc-100"); });
+        const activeBtn = document.querySelector(`.nav-link[data-target="${route}"]`);
+        if (activeBtn) activeBtn.classList.add("border-zinc-500", "text-zinc-100");
+
+        if (route === "circles") { fetchAndRenderCircles(); return; }
+
+        if (route === "feed" || route === "trending" || route === "my-questions") {
+            showMainFeed();
+            renderQuestionsFeed(filterQuestionsByTag(activeSearch, routeDataSet(route)));
+            if (feedTitle) feedTitle.textContent = route === "my-questions" ? "My Questions" : (route === "trending" ? "Trending" : "Feed");
+            return;
+        }
+
+        showPlaceholder(label || "Section", `Navigated to "${label || route}" Section`);
+    }
+
+    function bindFileUploadEvents() {
+        const attachBtn = $("attach-file-btn");
+        const fileInput = $("post-file-input");
+        const previewStrip = $("file-preview-strip");
+        const previewName = $("file-preview-name");
+        const removeBtn = $("remove-file-btn");
+
+        attachBtn?.addEventListener("click", () => fileInput?.click());
+
+        fileInput?.addEventListener("change", () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
+            selectedFile = file;
+            if (previewName) previewName.textContent = file.name;
+            const isImg = file.type.startsWith("image/");
+            const iconEl = previewStrip?.querySelector("i[data-lucide]");
+            if (iconEl) iconEl.setAttribute("data-lucide", isImg ? "image" : "file");
+            previewStrip?.classList.remove("hidden");
+            if (window.lucide) lucide.createIcons();
+        });
+
+        removeBtn?.addEventListener("click", () => {
+            selectedFile = null;
+            if (fileInput) fileInput.value = "";
+            previewStrip?.classList.add("hidden");
+            if (previewName) previewName.textContent = "";
+        });
+    }
+
+    function openSettingsModal() {
+        if ($("settings-name-input")) $("settings-name-input").value = currentUser.displayName || "";
+        if ($("settings-avatar-input")) $("settings-avatar-input").value = currentUser.avatar || "";
+        $("settings-modal")?.classList.remove("hidden");
+    }
+
+    function closeSettingsModal() {
+        $("settings-modal")?.classList.add("hidden");
+    }
+
+    async function saveProfileSettings() {
+        const newDisplayName = $("settings-name-input")?.value.trim();
+        const newAvatar = $("settings-avatar-input")?.value.trim();
+        const payload = {
+            userId: Number(currentUser.id),
+            displayName: newDisplayName || currentUser.displayName,
+            avatarUrl: newAvatar || currentUser.avatar
+        };
+        const res = await fetch(`${API_BASE}/api/users/update`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await readJsonSafe(res);
+        if (!res.ok) { alert(data.message || "Profile update failed"); return; }
+
+        const normalized = normalizeUser(data) || {};
+        currentUser = {
+            ...currentUser,
+            ...normalized,
+            username: normalized.username || currentUser.username,
+            displayName: normalized.displayName || normalized.username || currentUser.displayName,
+            avatar: normalized.avatar || currentUser.avatar
+        };
+
+        localStorage.setItem("userId", String(currentUser.id ?? 1));
+        localStorage.setItem("displayName", currentUser.displayName || "");
+        localStorage.setItem("username", currentUser.username || "");
+        localStorage.setItem("avatar", currentUser.avatar || "");
+        upsertUser(currentUser);
+        syncTopRightProfile();
+        closeSettingsModal();
+        showToast("Profile Updated Successfully!");
+        applyRoute(activeRoute, document.querySelector(`.nav-link[data-target="${activeRoute}"]`)?.dataset?.label || "Feed");
+    }
+
+    function bindDashboardEvents() {
+        $("profile-display")?.addEventListener("click", openSettingsModal);
+        $("close-settings-modal")?.addEventListener("click", closeSettingsModal);
+        $("cancel-settings-btn")?.addEventListener("click", closeSettingsModal);
+        $("save-profile-btn")?.addEventListener("click", saveProfileSettings);
+
+        const settingsModal = $("settings-modal");
+        if (settingsModal) settingsModal.onclick = (e) => { if (e.target.id === "settings-modal") closeSettingsModal(); };
+
+        $("searchInput")?.addEventListener("input", (e) => {
+            activeSearch = e.target.value || "";
+            applyRoute(activeRoute, document.querySelector(`.nav-link[data-target="${activeRoute}"]`)?.dataset?.label || "Feed");
+        });
+
+        $("heroStartBtn")?.addEventListener("click", openNewPostModal);
+        $("gateStartBtn")?.addEventListener("click", openNewPostModal);
+        $("explore-community-btn")?.addEventListener("click", () => applyRoute("circles", "Circles"));
+        $("explore-community-card")?.addEventListener("click", () => applyRoute("circles", "Circles"));
+        $("close-new-post-modal")?.addEventListener("click", closeNewPostModal);
+        $("cancel-new-post-btn")?.addEventListener("click", closeNewPostModal);
+
+        const newPostModal = $("new-post-modal");
+        if (newPostModal) newPostModal.onclick = (e) => { if (e.target.id === "new-post-modal") closeNewPostModal(); };
+
+        $("new-post-form")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await createQuestionFromForm();
+        });
+
+        document.querySelectorAll(".nav-link").forEach(btn => {
+            btn.addEventListener("click", () => applyRoute(btn.dataset.target, btn.dataset.label));
+        });
+    }
+
+    function openNewPostModal() {
+        selectedFile = null;
+        if ($("post-file-input")) $("post-file-input").value = "";
+        $("file-preview-strip")?.classList.add("hidden");
+        $("new-post-modal")?.classList.remove("hidden");
+        bindFileUploadEvents();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeNewPostModal() {
+        $("new-post-modal")?.classList.add("hidden");
+    }
+
+    async function init() {
+        renderDashboardShell();
+        await loadCurrentUserProfile();
+        await loadFollowingUsers();
+        await loadRealFeed();
+        applyRoute("feed", "Feed");
+
+        document.addEventListener("keydown", (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                $("searchInput")?.focus();
+                $("searchInput")?.select();
+            }
+        });
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+        init().catch((err) => {
+            console.error(err);
+            alert("Failed to initialize dashboard.");
+        });
+    });
+</script>
+
+</body>
+</html>

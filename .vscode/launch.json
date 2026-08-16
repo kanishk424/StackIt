@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-MainproApplication<mainpro>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.stackit_db.mainpro.MainproApplication",
+            "projectName": "mainpro",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

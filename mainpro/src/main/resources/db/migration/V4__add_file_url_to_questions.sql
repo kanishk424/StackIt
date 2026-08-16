@@ -1,0 +1,2 @@
+ALTER TABLE questions
+    ADD COLUMN file_url VARCHAR(600) NULL;
